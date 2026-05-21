@@ -1,0 +1,30 @@
+:root {
+  --ml-bg: #0b1220;
+  --ml-surface: #111b2e;
+  --ml-surface-2: #1c2840;
+  --ml-border: #2b3a59;
+  --ml-text: #ecf2ff;
+  --ml-muted: #a8b7d1;
+  --ml-accent: #4f8cff;
+  --ml-danger: #ef4444;
+  --ml-radius: 10px;
+}
+.ml-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999}
+.ml-modal{width:min(1000px,95vw);max-height:90vh;overflow:auto;background:var(--ml-surface);color:var(--ml-text);border:1px solid var(--ml-border);border-radius:var(--ml-radius);padding:16px;display:flex;flex-direction:column;gap:12px}
+.ml-header,.ml-footer{display:flex;gap:8px;justify-content:space-between;align-items:center}
+.ml-search{flex:1;padding:10px;border:1px solid var(--ml-border);border-radius:var(--ml-radius);background:var(--ml-surface-2);color:var(--ml-text)}
+.ml-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.ml-card{background:var(--ml-surface-2);border:1px solid var(--ml-border);border-radius:var(--ml-radius);padding:8px;color:var(--ml-text);text-align:left;cursor:pointer}
+.ml-card.is-selected{outline:2px solid var(--ml-accent)}
+.ml-card-media img,.ml-preview img,.ml-preview video{width:100%;display:block;border-radius:8px}
+.ml-card-fallback{height:120px;display:flex;align-items:center;justify-content:center;background:var(--ml-bg);border-radius:8px}
+.ml-btn{background:var(--ml-accent);color:white;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+.ml-btn:disabled{opacity:.6;cursor:not-allowed}
+.ml-btn-secondary{background:var(--ml-surface-2);border:1px solid var(--ml-border);color:var(--ml-text)}
+.ml-dropzone{border:1px dashed var(--ml-border);border-radius:var(--ml-radius);padding:16px;text-align:center;background:var(--ml-surface-2)}
+.ml-hidden-input{display:none}
+.ml-preview-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
+.ml-preview{width:min(700px,95vw);background:var(--ml-surface);padding:12px;border:1px solid var(--ml-border);border-radius:var(--ml-radius)}
+.ml-muted{color:var(--ml-muted)}
+.ml-error{color:var(--ml-danger)}
+.ml-empty{padding:20px;text-align:center;color:var(--ml-muted)}
