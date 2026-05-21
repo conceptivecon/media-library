@@ -13,7 +13,7 @@ export interface FetchMediaLibraryClientOptions {
   getHeaders?: () => HeadersInit | Promise<HeadersInit>;
 }
 
-class MediaLibraryRequestError extends Error {
+export class MediaLibraryRequestError extends Error {
   constructor(
     public readonly status: number,
     public readonly statusText: string,
@@ -27,16 +27,16 @@ class MediaLibraryRequestError extends Error {
 
 function toQueryString(params: MediaListParams): string {
   const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
+  Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
       query.set(key, String(value));
     }
-  }
-  const qs = query.toString();
-  return qs ? `?${qs}` : "";
+  });
+  const serialized = query.toString();
+  return serialized ? `?${serialized}` : "";
 }
 
-async function parseJsonResponse(response: Response): Promise<unknown> {
+async function parseResponse(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return null;
   try {
@@ -46,36 +46,44 @@ async function parseJsonResponse(response: Response): Promise<unknown> {
   }
 }
 
+async function resolveHeaders(
+  getHeaders?: () => HeadersInit | Promise<HeadersInit>,
+  base?: HeadersInit
+): Promise<HeadersInit> {
+  const dynamicHeaders = getHeaders ? await getHeaders() : undefined;
+  return {
+    ...(base ?? {}),
+    ...(dynamicHeaders ?? {})
+  };
+}
+
 export function createFetchMediaLibraryClient(
   options: FetchMediaLibraryClientOptions = {}
 ): MediaLibraryClient {
   const baseUrl = options.baseUrl?.replace(/\/$/, "") ?? "";
 
-  const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
-    const headers = await options.getHeaders?.();
+  const request = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
+    const isJsonBody = init.body !== undefined && init.body !== null;
+    const headers = await resolveHeaders(options.getHeaders, {
+      ...(isJsonBody ? { "Content-Type": "application/json" } : {})
+    });
+
     const response = await fetch(`${baseUrl}${path}`, {
       ...init,
       headers: {
-        "Content-Type": "application/json",
         ...headers,
-        ...init?.headers
+        ...(init.headers ?? {})
       }
     });
 
-    const payload = await parseJsonResponse(response);
+    const payload = await parseResponse(response);
 
     if (!response.ok) {
       const detail =
-        typeof payload === "object" && payload !== null && "message" in payload
+        typeof payload === "object" && payload && "message" in payload
           ? String((payload as Record<string, unknown>).message)
           : undefined;
-
-      throw new MediaLibraryRequestError(
-        response.status,
-        response.statusText,
-        payload,
-        detail
-      );
+      throw new MediaLibraryRequestError(response.status, response.statusText, payload, detail);
     }
 
     return payload as T;
@@ -86,27 +94,25 @@ export function createFetchMediaLibraryClient(
       request<MediaListResponse>(`/api/admin/media${toQueryString(params)}`, {
         method: "GET"
       }),
-    presignUpload: (input) =>
+    presignUpload: (input: PresignUploadRequest) =>
       request<PresignUploadResponse>("/api/admin/uploads/presign", {
         method: "POST",
         body: JSON.stringify(input)
       }),
-    createAsset: (input) =>
+    createAsset: (input: CreateMediaAssetRequest) =>
       request<MediaAsset>("/api/admin/media", {
         method: "POST",
         body: JSON.stringify(input)
       }),
-    updateAsset: (id, input) =>
+    updateAsset: (id: string, input: Partial<CreateMediaAssetRequest>) =>
       request<MediaAsset>(`/api/admin/media/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: JSON.stringify(input)
       }),
-    deleteAsset: async (id) => {
-      await request<unknown>(`/api/admin/media/${encodeURIComponent(id)}`, {
+    deleteAsset: async (id: string) => {
+      await request<void>(`/api/admin/media/${encodeURIComponent(id)}`, {
         method: "DELETE"
       });
     }
   };
 }
-
-export { MediaLibraryRequestError };

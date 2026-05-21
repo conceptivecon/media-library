@@ -16,12 +16,19 @@ function defaultInferType(file: File): MediaAssetType {
 
 export function useMediaUpload(client: MediaLibraryClient) {
   const [uploading, setUploading] = useState(false);
-  const [progressText, setProgressText] = useState<string>("");
+  const [progressText, setProgressText] = useState("");
 
-  const uploadFiles = async (files: File[], options: UploadFilesOptions): Promise<MediaAsset[]> => {
+  const uploadFiles = async (
+    files: File[],
+    options: UploadFilesOptions
+  ): Promise<MediaAsset[]> => {
     if (!files.length) return [];
+
     setUploading(true);
+    setProgressText("Preparing upload...");
+
     const createdAssets: MediaAsset[] = [];
+
     try {
       for (let i = 0; i < files.length; i += 1) {
         const file = files[i];
@@ -43,21 +50,23 @@ export function useMediaUpload(client: MediaLibraryClient) {
         });
 
         if (!uploadResponse.ok) {
-          throw new Error(`Upload failed for ${file.name}: ${uploadResponse.statusText}`);
+          throw new Error(
+            `Upload failed for ${file.name}: ${uploadResponse.status} ${uploadResponse.statusText}`
+          );
         }
 
-        const asset = await client.createAsset({
+        const created = await client.createAsset({
           filename: file.name,
+          type: (options.inferType ?? defaultInferType)(file),
           url: presigned.publicUrl,
           storageKey: presigned.key,
           mimeType: file.type || undefined,
           sizeBytes: file.size,
           context: options.context,
-          contextId: options.contextId,
-          type: (options.inferType ?? defaultInferType)(file)
+          contextId: options.contextId
         });
 
-        createdAssets.push(asset);
+        createdAssets.push(created);
       }
 
       setProgressText(`Uploaded ${createdAssets.length} file(s).`);
@@ -67,9 +76,5 @@ export function useMediaUpload(client: MediaLibraryClient) {
     }
   };
 
-  return {
-    uploading,
-    progressText,
-    uploadFiles
-  };
+  return { uploading, progressText, uploadFiles };
 }

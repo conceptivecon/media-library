@@ -7,7 +7,7 @@ import { MediaGrid } from "./MediaGrid";
 import { MediaPreviewDialog } from "./MediaPreviewDialog";
 import { MediaUploadDropzone } from "./MediaUploadDropzone";
 
-interface MediaLibraryModalProps {
+export interface MediaLibraryModalProps {
   open: boolean;
   onClose: () => void;
   client: MediaLibraryClient;
@@ -20,24 +20,38 @@ interface MediaLibraryModalProps {
   onPick: (items: PickedMedia[]) => void;
 }
 
-const mapPickedType = (type: MediaAssetType): PickedMedia["type"] =>
-  type === "image" ? "IMAGE" : type === "video" || type === "360video" ? "VIDEO" : "EXTERNAL";
+const mapPickedType = (type: MediaAssetType): PickedMedia["type"] => {
+  if (type === "image") return "IMAGE";
+  if (type === "video" || type === "360video") return "VIDEO";
+  return "EXTERNAL";
+};
 
-export function MediaLibraryModal(props: MediaLibraryModalProps) {
-  const { open, onClose, client, context = "shared", contextId, multiple, imagesOnly, allowedTypes, maxFileSizeMb = 25, onPick } = props;
+export function MediaLibraryModal({
+  open,
+  onClose,
+  client,
+  context = "shared",
+  contextId,
+  multiple = false,
+  imagesOnly = false,
+  allowedTypes,
+  maxFileSizeMb = 25,
+  onPick
+}: MediaLibraryModalProps) {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Map<string, MediaAsset>>(new Map());
   const [previewAsset, setPreviewAsset] = useState<MediaAsset | null>(null);
 
-  const filters: MediaAssetType[] | undefined = useMemo(() => {
-    if (allowedTypes?.length) return allowedTypes;
+  const filters = useMemo<MediaAssetType[] | undefined>(() => {
+    if (allowedTypes && allowedTypes.length > 0) return allowedTypes;
     if (imagesOnly) return ["image"];
     return undefined;
   }, [allowedTypes, imagesOnly]);
 
-  const { assets, loading, error, reload } = useMediaAssets(client, {
-    page: 1,
-    limit: 50,
+  const { assets, pagination, loading, error, reload } = useMediaAssets(client, {
+    page,
+    limit: 24,
     search,
     context,
     contextId
@@ -46,33 +60,36 @@ export function MediaLibraryModal(props: MediaLibraryModalProps) {
 
   if (!open) return null;
 
-  const filteredAssets = filters ? assets.filter((a) => filters.includes(a.type)) : assets;
+  const filteredAssets = filters ? assets.filter((asset) => filters.includes(asset.type)) : assets;
 
-  const toggle = (asset: MediaAsset) => {
+  const handleToggle = (asset: MediaAsset) => {
     setSelected((prev) => {
       const next = multiple ? new Map(prev) : new Map<string, MediaAsset>();
-      if (next.has(asset.id)) next.delete(asset.id);
-      else next.set(asset.id, asset);
+      if (next.has(asset.id)) {
+        next.delete(asset.id);
+      } else {
+        next.set(asset.id, asset);
+      }
       return next;
     });
   };
 
   const handleUpload = async (files: File[]) => {
-    const eligible = files.filter((f) => f.size / 1024 / 1024 <= maxFileSizeMb);
-    if (!eligible.length) return;
+    const eligible = files.filter((file) => file.size <= maxFileSizeMb * 1024 * 1024);
+    if (eligible.length === 0) return;
     await uploadFiles(eligible, { context, contextId });
     await reload();
   };
 
-  const confirm = () => {
+  const handleConfirm = () => {
     const picked: PickedMedia[] = Array.from(selected.values()).map((asset) => ({
       id: asset.id,
       assetId: asset.id,
       url: asset.url,
+      type: mapPickedType(asset.type),
       filename: asset.filename,
       thumbnail: asset.thumbnail,
-      altText: asset.altText,
-      type: mapPickedType(asset.type)
+      altText: asset.altText
     }));
     onPick(picked);
     onClose();
@@ -80,18 +97,74 @@ export function MediaLibraryModal(props: MediaLibraryModalProps) {
 
   return (
     <div className="ml-overlay" onClick={onClose}>
-      <div className="ml-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="ml-modal" onClick={(event) => event.stopPropagation()}>
         <div className="ml-header">
-          <input className="ml-search" placeholder="Search media..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          <button className="ml-btn ml-btn-secondary" type="button" onClick={onClose}>Close</button>
+          <input
+            className="ml-search"
+            placeholder="Search media..."
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+          />
+          <button className="ml-btn ml-btn-secondary" type="button" onClick={onClose}>
+            Close
+          </button>
         </div>
-        <MediaUploadDropzone onFiles={handleUpload} disabled={uploading} accept={imagesOnly ? "image/*" : undefined} />
+
+        <MediaUploadDropzone
+          onFiles={handleUpload}
+          disabled={uploading}
+          accept={imagesOnly ? "image/*" : undefined}
+        />
+
         {progressText ? <p className="ml-muted">{progressText}</p> : null}
-        {loading ? <p>Loading...</p> : <MediaGrid assets={filteredAssets} selectedIds={new Set(selected.keys())} onToggle={toggle} />}
+        {loading ? <p className="ml-muted">Loading...</p> : null}
         {error ? <p className="ml-error">{error}</p> : null}
+
+        {!loading ? (
+          <MediaGrid
+            assets={filteredAssets}
+            selectedIds={new Set(selected.keys())}
+            onToggle={handleToggle}
+            onPreview={setPreviewAsset}
+          />
+        ) : null}
+
+        <div className="ml-pagination">
+          <button
+            type="button"
+            className="ml-btn ml-btn-secondary"
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            disabled={page <= 1 || loading}
+          >
+            Previous
+          </button>
+          <span className="ml-muted">
+            Page {pagination.page} of {Math.max(1, pagination.pages)}
+          </span>
+          <button
+            type="button"
+            className="ml-btn ml-btn-secondary"
+            onClick={() => setPage((current) => Math.min(Math.max(1, pagination.pages), current + 1))}
+            disabled={page >= Math.max(1, pagination.pages) || loading}
+          >
+            Next
+          </button>
+        </div>
+
         <div className="ml-footer">
-          <button className="ml-btn ml-btn-secondary" type="button" onClick={() => setSelected(new Map())}>Clear</button>
-          <button className="ml-btn" type="button" onClick={confirm} disabled={!selected.size}>Use selected ({selected.size})</button>
+          <button
+            className="ml-btn ml-btn-secondary"
+            type="button"
+            onClick={() => setSelected(new Map())}
+          >
+            Clear
+          </button>
+          <button className="ml-btn" type="button" onClick={handleConfirm} disabled={selected.size === 0}>
+            Use selected ({selected.size})
+          </button>
         </div>
       </div>
       <MediaPreviewDialog asset={previewAsset} onClose={() => setPreviewAsset(null)} />

@@ -5,10 +5,17 @@ interface MediaGridProps {
   assets: MediaAsset[];
   selectedIds: Set<string>;
   onToggle: (asset: MediaAsset) => void;
+  onPreview?: (asset: MediaAsset) => void;
   emptyText?: string;
 }
 
-export function MediaGrid({ assets, selectedIds, onToggle, emptyText = "No assets found." }: MediaGridProps) {
+export function MediaGrid({
+  assets,
+  selectedIds,
+  onToggle,
+  onPreview,
+  emptyText = "No assets found."
+}: MediaGridProps) {
   if (!assets.length) return <div className="ml-empty">{emptyText}</div>;
 
   return (
@@ -19,6 +26,7 @@ export function MediaGrid({ assets, selectedIds, onToggle, emptyText = "No asset
           asset={asset}
           selected={selectedIds.has(asset.id)}
           onToggle={onToggle}
+          onPreview={onPreview}
         />
       ))}
     </div>
