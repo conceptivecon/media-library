@@ -1,0 +1,26 @@
+/// Template snippet: copy into your host application's Prisma schema and adjust as needed.
+/// Suggested type values: image, video, 360video, external, document.
+model MediaAsset {
+  id               String   @id @default(cuid())
+  filename         String
+  type             String
+  url              String
+  storageKey       String?
+  thumbnail        String?
+  mimeType         String?
+  sizeBytes        Int?
+  width            Int?
+  height           Int?
+  duration         Float?
+  context          String?
+  contextId        String?
+  externalPlatform String?
+  altText          String?
+  tags             String[]
+  uploadedBy       String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([context, contextId])
+  @@index([type, createdAt])
+}

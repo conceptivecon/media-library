@@ -1,0 +1,18 @@
+/// Template snippet: generic owner link model for attaching media to arbitrary domain entities.
+model MediaAssetLink {
+  id           String   @id @default(cuid())
+  mediaAssetId String
+  ownerType    String
+  ownerId      String
+  role         String?
+  altText      String?
+  sortOrder    Int      @default(0)
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([mediaAssetId])
+  @@index([ownerType, ownerId])
+  @@index([ownerType, ownerId, sortOrder])
+  @@unique([mediaAssetId, ownerType, ownerId, role])
+}
