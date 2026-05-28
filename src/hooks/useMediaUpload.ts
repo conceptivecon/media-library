@@ -11,6 +11,14 @@ export interface UploadFilesOptions {
 function defaultInferType(file: File): MediaAssetType {
   if (file.type.startsWith("image/")) return "image";
   if (file.type.startsWith("video/")) return "video";
+  if (
+    file.type === "application/pdf" ||
+    file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    file.name.toLowerCase().endsWith(".pdf") ||
+    file.name.toLowerCase().endsWith(".docx")
+  ) {
+    return "document";
+  }
   return "external";
 }
 
@@ -30,16 +38,17 @@ export function useMediaUpload(client: MediaLibraryClient) {
     const createdAssets: MediaAsset[] = [];
 
     try {
-      for (let i = 0; i < files.length; i += 1) {
-        const file = files[i];
-        setProgressText(`Uploading ${i + 1}/${files.length}: ${file.name}`);
+      for (const [index, file] of files.entries()) {
+        setProgressText(`Uploading ${index + 1}/${files.length}: ${file.name}`);
 
-        const presigned = await client.presignUpload({
+        const presignInput = {
           filename: file.name,
           contentType: file.type || "application/octet-stream",
           context: options.context,
-          contextId: options.contextId
-        });
+          ...(options.contextId ? { contextId: options.contextId } : {})
+        };
+
+        const presigned = await client.presignUpload(presignInput);
 
         const uploadResponse = await fetch(presigned.uploadUrl, {
           method: "PUT",
@@ -55,16 +64,18 @@ export function useMediaUpload(client: MediaLibraryClient) {
           );
         }
 
-        const created = await client.createAsset({
+        const createInput = {
           filename: file.name,
           type: (options.inferType ?? defaultInferType)(file),
           url: presigned.publicUrl,
           storageKey: presigned.key,
-          mimeType: file.type || undefined,
           sizeBytes: file.size,
           context: options.context,
-          contextId: options.contextId
-        });
+          ...(file.type ? { mimeType: file.type } : {}),
+          ...(options.contextId ? { contextId: options.contextId } : {})
+        };
+
+        const created = await client.createAsset(createInput);
 
         createdAssets.push(created);
       }

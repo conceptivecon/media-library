@@ -29,6 +29,7 @@
 .ml-hidden-input { display: none; }
 .ml-preview-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
 .ml-preview { width: min(700px,95vw); background: var(--ml-surface); padding: 12px; border: 1px solid var(--ml-border); border-radius: var(--ml-radius); }
+.ml-document-preview { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px; background: var(--ml-surface-2); border: 1px solid var(--ml-border); border-radius: 8px; }
 .ml-muted { color: var(--ml-muted); }
 .ml-error { color: var(--ml-danger); }
 .ml-empty { padding: 20px; text-align: center; color: var(--ml-muted); }

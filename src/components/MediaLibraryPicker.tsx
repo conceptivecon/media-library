@@ -29,12 +29,12 @@ export function MediaLibraryPicker({
         open={open}
         onClose={() => setOpen(false)}
         client={client}
-        context={context}
-        contextId={contextId}
-        multiple={multiple}
-        imagesOnly={imagesOnly}
-        allowedTypes={allowedTypes}
-        maxFileSizeMb={maxFileSizeMb}
+        {...(context ? { context } : {})}
+        {...(contextId ? { contextId } : {})}
+        {...(multiple !== undefined ? { multiple } : {})}
+        {...(imagesOnly !== undefined ? { imagesOnly } : {})}
+        {...(allowedTypes ? { allowedTypes } : {})}
+        {...(maxFileSizeMb !== undefined ? { maxFileSizeMb } : {})}
         onPick={onPick}
       />
     </div>

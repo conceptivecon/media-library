@@ -26,7 +26,7 @@ export function MediaGrid({
           asset={asset}
           selected={selectedIds.has(asset.id)}
           onToggle={onToggle}
-          onPreview={onPreview}
+          {...(onPreview ? { onPreview } : {})}
         />
       ))}
     </div>

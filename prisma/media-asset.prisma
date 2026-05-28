@@ -1,4 +1,5 @@
 /// Template snippet: copy into your host application's Prisma schema and adjust as needed.
+/// Suggested type values: image, video, 360video, external, document.
 model MediaAsset {
   id               String   @id @default(cuid())
   filename         String

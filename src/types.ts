@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { MediaLibraryClient } from "./client/MediaLibraryClient";
 
-export type MediaAssetType = "image" | "video" | "external" | "360video";
+export type MediaAssetType = "image" | "video" | "external" | "360video" | "document";
 
 export type MediaContext =
   | "products"
@@ -40,7 +40,7 @@ export interface PickedMedia {
   id: string;
   assetId: string;
   url: string;
-  type: "IMAGE" | "VIDEO" | "EXTERNAL";
+  type: "IMAGE" | "VIDEO" | "EXTERNAL" | "DOCUMENT";
   filename: string;
   thumbnail?: string;
   altText?: string;

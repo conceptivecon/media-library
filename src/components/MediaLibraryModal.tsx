@@ -23,7 +23,27 @@ export interface MediaLibraryModalProps {
 const mapPickedType = (type: MediaAssetType): PickedMedia["type"] => {
   if (type === "image") return "IMAGE";
   if (type === "video" || type === "360video") return "VIDEO";
+  if (type === "document") return "DOCUMENT";
   return "EXTERNAL";
+};
+
+const buildUploadAccept = (
+  imagesOnly: boolean,
+  allowedTypes?: MediaAssetType[]
+): string | undefined => {
+  if (imagesOnly) return "image/*";
+
+  const types = new Set(allowedTypes ?? ["image", "video", "external", "360video", "document"]);
+  const accepted: string[] = [];
+
+  if (types.has("image")) accepted.push("image/*");
+  if (types.has("video") || types.has("360video")) accepted.push("video/*");
+  if (types.has("document")) {
+    accepted.push("application/pdf", ".pdf");
+    accepted.push("application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx");
+  }
+
+  return accepted.length ? accepted.join(",") : undefined;
 };
 
 export function MediaLibraryModal({
@@ -49,14 +69,17 @@ export function MediaLibraryModal({
     return undefined;
   }, [allowedTypes, imagesOnly]);
 
-  const { assets, pagination, loading, error, reload } = useMediaAssets(client, {
+  const listParams = {
     page,
     limit: 24,
     search,
     context,
-    contextId
-  });
+    ...(contextId ? { contextId } : {})
+  };
+
+  const { assets, pagination, loading, error, reload } = useMediaAssets(client, listParams);
   const { uploading, progressText, uploadFiles } = useMediaUpload(client);
+  const uploadAccept = buildUploadAccept(imagesOnly, allowedTypes);
 
   if (!open) return null;
 
@@ -77,7 +100,10 @@ export function MediaLibraryModal({
   const handleUpload = async (files: File[]) => {
     const eligible = files.filter((file) => file.size <= maxFileSizeMb * 1024 * 1024);
     if (eligible.length === 0) return;
-    await uploadFiles(eligible, { context, contextId });
+    await uploadFiles(eligible, {
+      context,
+      ...(contextId ? { contextId } : {})
+    });
     await reload();
   };
 
@@ -116,7 +142,7 @@ export function MediaLibraryModal({
         <MediaUploadDropzone
           onFiles={handleUpload}
           disabled={uploading}
-          accept={imagesOnly ? "image/*" : undefined}
+          {...(uploadAccept ? { accept: uploadAccept } : {})}
         />
 
         {progressText ? <p className="ml-muted">{progressText}</p> : null}
